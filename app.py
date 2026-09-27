@@ -65,3 +65,11 @@ if total > 0:
         if full_qty > 0:
             st.write(f"Full Plate x {full_qty} = ₹{full_qty * menu['Full Plate']}")
         if half_qty > 0:
+            st.write(f"Half Plate x {half_qty} = ₹{half_qty * menu['Half Plate']}")
+        if small_qty > 0:
+            st.write(f"Small Plate x {small_qty} = ₹{small_qty * menu['Small Plate']}")
+else:
+    st.info("Order karne ke liye quantity select karein.")
+
+st.markdown("---")
+st.caption("Made with ❤️ | Jai Balaji Veg Biryani Stall")
