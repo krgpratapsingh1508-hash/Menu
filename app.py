@@ -1,4 +1,7 @@
 import streamlit as st
+import gspread
+from google.oauth2.service_account import Credentials
+from datetime import datetime
 
 # Page setup
 st.set_page_config(page_title="Jai Balaji", page_icon="🍛", layout="centered")
@@ -30,6 +33,21 @@ st.markdown("""
 
 st.markdown('<div class="main-title">🍛 Jai Balaji</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Veg Biryani Stall</div>', unsafe_allow_html=True)
+
+# --- GOOGLE SHEET CONNECTION ---
+SHEET_NAME = "Jai Balaji Orders"  # Apni sheet ka exact naam yaha daalo
+
+@st.cache_resource
+def get_sheet():
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=scopes
+    )
+    client = gspread.authorize(creds)
+    return client.open(SHEET_NAME).sheet1
 
 # --- MENU DATA ---
 menu = {
@@ -68,6 +86,16 @@ if total > 0:
             st.write(f"Half Plate x {half_qty} = ₹{half_qty * menu['Half Plate']}")
         if small_qty > 0:
             st.write(f"Small Plate x {small_qty} = ₹{small_qty * menu['Small Plate']}")
+
+    if st.button("✅ Order Confirm Karein"):
+        try:
+            sheet = get_sheet()
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sheet.append_row([timestamp, full_qty, half_qty, small_qty, total])
+            st.balloons()
+            st.success("Order safaltapoorvak bhej diya gaya hai! Jai Balaji stall ko notification mil jayegi.")
+        except Exception as e:
+            st.error(f"Order bhejne me dikkat aayi: {e}")
 else:
     st.info("Order karne ke liye quantity select karein.")
 
