@@ -170,6 +170,13 @@ else:
     if "order_placed" not in st.session_state:
         st.session_state.order_placed = False
 
+    # Widgets banne se PEHLE hi reset kar dete hain (isse widget-key error nahi aata)
+    if st.session_state.get("do_reset", False):
+        st.session_state.full_qty = 0
+        st.session_state.half_qty = 0
+        st.session_state.small_qty = 0
+        st.session_state.do_reset = False
+
     if st.session_state.order_placed:
         st.balloons()
         st.success("🎉 Order safaltapoorvak place ho gaya hai!")
@@ -202,9 +209,7 @@ else:
 
         if st.button("✅ Order Confirm Karein"):
             save_order(full_qty, half_qty, small_qty, total)
-            st.session_state.full_qty = 0
-            st.session_state.half_qty = 0
-            st.session_state.small_qty = 0
+            st.session_state.do_reset = True
             st.session_state.order_placed = True
             st.rerun()
     else:
