@@ -98,7 +98,7 @@ st.markdown("""
 def load_orders():
     if os.path.exists(ORDERS_FILE):
         return pd.read_csv(ORDERS_FILE)
-    return pd.DataFrame(columns=["Timestamp", "Name", "Mobile", "Address", "Full Plate", "Half Plate", "Small Plate", "Total"])
+    return pd.DataFrame(columns=["Timestamp", "Name", "Mobile", "Address", "Payment Method", "Full Plate", "Half Plate", "Small Plate", "Total"])
 
 def save_order(customer, quantities, total):
     df = load_orders()
@@ -284,6 +284,8 @@ else:
         for field_key in ["cust_name", "cust_mobile", "cust_address"]:
             if field_key not in st.session_state:
                 st.session_state[field_key] = ""
+        if "payment_method" not in st.session_state:
+            st.session_state["payment_method"] = "Online (QR)"
 
         if "order_placed" not in st.session_state:
             st.session_state.order_placed = False
@@ -295,6 +297,7 @@ else:
             st.session_state.cust_name = ""
             st.session_state.cust_mobile = ""
             st.session_state.cust_address = ""
+            st.session_state.payment_method = "Online (QR)"
             st.session_state.do_reset = False
 
         if st.session_state.order_placed:
@@ -312,7 +315,7 @@ else:
                     item_rows += f"<tr><td>{item}</td><td>x{qty}</td><td>₹{amount}</td></tr>"
 
             qr_html = ""
-            if os.path.exists(QR_FILE):
+            if last.get("payment_method") == "Online (QR)" and os.path.exists(QR_FILE):
                 with open(QR_FILE, "rb") as f:
                     qr_b64 = base64.b64encode(f.read()).decode()
                 qr_ext = QR_FILE.split(".")[-1]
@@ -320,6 +323,12 @@ else:
                     <div style="text-align:center; margin-top:20px;">
                         <p style="font-weight:bold;">📲 Payment Karne Ke Liye QR Scan Karein</p>
                         <img src="data:image/{qr_ext};base64,{qr_b64}" width="200" />
+                    </div>
+                """
+            elif last.get("payment_method") == "Cash":
+                qr_html = """
+                    <div style="text-align:center; margin-top:20px;">
+                        <p style="font-weight:bold;">💵 Payment Mode: Cash</p>
                     </div>
                 """
 
@@ -334,6 +343,7 @@ else:
                 <p><b>Name:</b> {last['customer']['Name']}</p>
                 <p><b>Mobile:</b> {last['customer']['Mobile']}</p>
                 <p><b>Address:</b> {last['customer']['Address']}</p>
+                <p><b>Payment Method:</b> {last['customer']['Payment Method']}</p>
                 <hr>
                 <table style="width:100%; border-collapse:collapse;">
                     <tr style="border-bottom:1px solid #d35400;"><th align="left">Item</th><th align="left">Qty</th><th align="left">Amount</th></tr>
@@ -362,8 +372,10 @@ else:
                 """, height=0)
                 st.session_state.bill_downloaded = True
 
-            if os.path.exists(QR_FILE):
+            if last.get("payment_method") == "Online (QR)" and os.path.exists(QR_FILE):
                 st.image(QR_FILE, caption="📲 Payment Karne Ke Liye Scan Karein", width=200)
+            elif last.get("payment_method") == "Cash":
+                st.info("💵 Payment Mode: Cash")
 
             st.download_button(
                 "⬇️ Bill Dobara Download Karein",
@@ -376,6 +388,15 @@ else:
         cust_name = st.text_input("Naam", key="cust_name")
         cust_mobile = st.text_input("Mobile No.", key="cust_mobile")
         cust_address = st.text_area("Address", key="cust_address", height=80)
+
+        st.markdown("**💳 Payment Method Chunein**")
+        payment_method = st.radio(
+            "Payment kaise karenge?",
+            ["Online (QR)", "Cash"],
+            key="payment_method",
+            label_visibility="collapsed",
+            horizontal=True
+        )
 
         st.markdown("**🍽️ Quantity Chunein**")
         quantities = {}
@@ -407,7 +428,8 @@ else:
                     customer = {
                         "Name": cust_name.strip(),
                         "Mobile": cust_mobile.strip(),
-                        "Address": cust_address.strip()
+                        "Address": cust_address.strip(),
+                        "Payment Method": payment_method
                     }
                     save_order(customer, quantities, total)
                     st.session_state.last_order = {
@@ -415,7 +437,8 @@ else:
                         "customer": customer,
                         "quantities": quantities.copy(),
                         "menu": menu,
-                        "total": total
+                        "total": total,
+                        "payment_method": payment_method
                     }
                     st.session_state.do_reset = True
                     st.session_state.order_placed = True
