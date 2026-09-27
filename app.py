@@ -13,6 +13,7 @@ st.set_page_config(page_title="Jai Balaji", page_icon="🍛", layout="centered")
 ORDERS_FILE = "orders.csv"
 MENU_FILE = "menu.json"
 PIN_FILE = "pin.txt"
+QR_FILE = "qr.png"
 
 DEFAULT_MENU = {
     "Full Plate": {"price": 50, "icon": "🍚"},
@@ -210,7 +211,7 @@ if show_owner_panel:
                     st.success(f"{new_name} menu mein add ho gaya.")
                     st.rerun()
 
-    # --- TAB 3: SETTINGS (Change PIN) ---
+    # --- TAB 3: SETTINGS (Change PIN + Payment QR) ---
     with tab_settings:
         st.subheader("🔑 PIN Badlein")
         with st.form("change_pin_form", clear_on_submit=True):
@@ -225,6 +226,26 @@ if show_owner_panel:
                 else:
                     save_pin(new_pin.strip())
                     st.success("PIN safaltapoorvak update ho gaya. Agli baar naya PIN use karein.")
+
+        st.markdown("---")
+        st.subheader("💳 Payment QR Code")
+        if os.path.exists(QR_FILE):
+            st.image(QR_FILE, caption="Current Payment QR", width=200)
+        else:
+            st.info("Abhi koi QR upload nahi hua hai.")
+
+        uploaded_qr = st.file_uploader("Naya QR upload karein (PNG/JPG)", type=["png", "jpg", "jpeg"])
+        if uploaded_qr is not None:
+            with open(QR_FILE, "wb") as f:
+                f.write(uploaded_qr.getbuffer())
+            st.success("QR safaltapoorvak update ho gaya. Naye bills isi QR ke saath jaayenge.")
+            st.rerun()
+
+        if os.path.exists(QR_FILE):
+            if st.button("🗑️ QR Hatayein"):
+                os.remove(QR_FILE)
+                st.success("QR hata diya gaya hai.")
+                st.rerun()
 
 # --- CUSTOMER VIEW ---
 else:
@@ -280,40 +301,57 @@ else:
 
         last = st.session_state.get("last_order")
         if last:
-            bill_lines = [
-                "========================================",
-                "           JAI BALAJI",
-                "        Veg Biryani Stall",
-                "========================================",
-                f"Date/Time : {last['timestamp']}",
-                f"Name      : {last['customer']['Name']}",
-                f"Mobile    : {last['customer']['Mobile']}",
-                f"Address   : {last['customer']['Address']}",
-                "----------------------------------------",
-                "Item                 Qty      Amount",
-                "----------------------------------------",
-            ]
+            item_rows = ""
             for item, qty in last["quantities"].items():
                 if qty > 0:
                     price = last["menu"][item]["price"]
                     amount = qty * price
-                    bill_lines.append(f"{item:<18} x{qty:<3}   ₹{amount}")
-            bill_lines += [
-                "----------------------------------------",
-                f"TOTAL BILL: ₹{last['total']}",
-                "========================================",
-                "      Thank you! Aayiye phir!",
-                "========================================",
-            ]
-            bill_text = "\n".join(bill_lines)
-            file_name = f"bill_{last['timestamp'].replace(' ', '_').replace(':', '-')}.txt"
+                    item_rows += f"<tr><td>{item}</td><td>x{qty}</td><td>₹{amount}</td></tr>"
+
+            qr_html = ""
+            if os.path.exists(QR_FILE):
+                with open(QR_FILE, "rb") as f:
+                    qr_b64 = base64.b64encode(f.read()).decode()
+                qr_ext = QR_FILE.split(".")[-1]
+                qr_html = f"""
+                    <div style="text-align:center; margin-top:20px;">
+                        <p style="font-weight:bold;">📲 Payment Karne Ke Liye QR Scan Karein</p>
+                        <img src="data:image/{qr_ext};base64,{qr_b64}" width="200" />
+                    </div>
+                """
+
+            bill_html = f"""
+            <html>
+            <head><meta charset="UTF-8"></head>
+            <body style="font-family: Arial, sans-serif; max-width:400px; margin:auto; padding:20px; color:#3e2723;">
+                <h2 style="text-align:center; color:#d35400;">🍛 Jai Balaji</h2>
+                <p style="text-align:center; margin-top:-10px;">Veg Biryani Stall</p>
+                <hr>
+                <p><b>Date/Time:</b> {last['timestamp']}</p>
+                <p><b>Name:</b> {last['customer']['Name']}</p>
+                <p><b>Mobile:</b> {last['customer']['Mobile']}</p>
+                <p><b>Address:</b> {last['customer']['Address']}</p>
+                <hr>
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr style="border-bottom:1px solid #d35400;"><th align="left">Item</th><th align="left">Qty</th><th align="left">Amount</th></tr>
+                    {item_rows}
+                </table>
+                <hr>
+                <h3 style="text-align:center; color:#27ae60;">Total Bill: ₹{last['total']}</h3>
+                {qr_html}
+                <p style="text-align:center; margin-top:20px;">Thank you! Aayiye phir! 🙏</p>
+            </body>
+            </html>
+            """
+
+            file_name = f"bill_{last['timestamp'].replace(' ', '_').replace(':', '-')}.html"
 
             # Sirf tabhi auto-download trigger karein jab ye NAYA bill ho (dobara har rerun par na ho)
             if not st.session_state.get("bill_downloaded", False):
-                b64 = base64.b64encode(bill_text.encode()).decode()
+                b64 = base64.b64encode(bill_html.encode()).decode()
                 components.html(f"""
                     <html><body>
-                    <a id="autoDownload" href="data:text/plain;base64,{b64}" download="{file_name}"></a>
+                    <a id="autoDownload" href="data:text/html;base64,{b64}" download="{file_name}"></a>
                     <script>
                         document.getElementById('autoDownload').click();
                     </script>
@@ -321,11 +359,14 @@ else:
                 """, height=0)
                 st.session_state.bill_downloaded = True
 
+            if os.path.exists(QR_FILE):
+                st.image(QR_FILE, caption="📲 Payment Karne Ke Liye Scan Karein", width=200)
+
             st.download_button(
                 "⬇️ Bill Dobara Download Karein",
-                data=bill_text,
+                data=bill_html,
                 file_name=file_name,
-                mime="text/plain"
+                mime="text/html"
             )
 
         st.markdown("**👤 Aapki Details**")
