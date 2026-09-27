@@ -27,10 +27,14 @@ st.markdown("""
     }
     .price-box {
         background-color: #fff3e0;
+        color: #3e2723 !important;
         padding: 10px;
         border-radius: 10px;
         margin-bottom: 10px;
         font-size: 1.1rem;
+    }
+    .price-box b {
+        color: #3e2723 !important;
     }
     </style>
 """, unsafe_allow_html=True)
