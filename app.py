@@ -154,7 +154,10 @@ if show_owner_panel:
         if orders_df.empty:
             st.info("Abhi tak koi order nahi aaya hai.")
         else:
-            st.dataframe(orders_df, use_container_width=True)
+            display_df = orders_df.copy()
+            display_df.index = range(1, len(display_df) + 1)
+            display_df.index.name = "S.No."
+            st.dataframe(display_df, use_container_width=True)
             total_orders = len(orders_df)
             total_revenue = orders_df["Total"].sum()
             col1, col2 = st.columns(2)
