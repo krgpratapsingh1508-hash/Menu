@@ -160,13 +160,28 @@ else:
 
     st.markdown('<div class="section-heading">🛒 Order Karein</div>', unsafe_allow_html=True)
 
+    # Order form ke liye default values (order confirm hone ke baad reset ho jayenge)
+    if "full_qty" not in st.session_state:
+        st.session_state.full_qty = 0
+    if "half_qty" not in st.session_state:
+        st.session_state.half_qty = 0
+    if "small_qty" not in st.session_state:
+        st.session_state.small_qty = 0
+    if "order_placed" not in st.session_state:
+        st.session_state.order_placed = False
+
+    if st.session_state.order_placed:
+        st.balloons()
+        st.success("🎉 Order safaltapoorvak place ho gaya hai!")
+        st.session_state.order_placed = False
+
     col1, col2, col3 = st.columns(3)
     with col1:
-        full_qty = st.number_input("🍚 Full Plate", min_value=0, value=0, step=1)
+        full_qty = st.number_input("🍚 Full Plate", min_value=0, step=1, key="full_qty")
     with col2:
-        half_qty = st.number_input("🥘 Half Plate", min_value=0, value=0, step=1)
+        half_qty = st.number_input("🥘 Half Plate", min_value=0, step=1, key="half_qty")
     with col3:
-        small_qty = st.number_input("🍛 Small Plate", min_value=0, value=0, step=1)
+        small_qty = st.number_input("🍛 Small Plate", min_value=0, step=1, key="small_qty")
 
     total = (full_qty * menu["Full Plate"]["price"]) + (half_qty * menu["Half Plate"]["price"]) + (small_qty * menu["Small Plate"]["price"])
 
@@ -187,8 +202,11 @@ else:
 
         if st.button("✅ Order Confirm Karein"):
             save_order(full_qty, half_qty, small_qty, total)
-            st.balloons()
-            st.success("🎉 Order safaltapoorvak place ho gaya hai!")
+            st.session_state.full_qty = 0
+            st.session_state.half_qty = 0
+            st.session_state.small_qty = 0
+            st.session_state.order_placed = True
+            st.rerun()
     else:
         st.info("Order karne ke liye quantity select karein.")
 
