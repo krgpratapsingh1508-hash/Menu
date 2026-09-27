@@ -13,28 +13,71 @@ ORDERS_FILE = "orders.csv"
 # --- STYLING ---
 st.markdown("""
     <style>
-    .main-title {
+    .header-banner {
+        background: linear-gradient(135deg, #ff9a3c 0%, #d35400 100%);
+        padding: 2rem 1rem;
+        border-radius: 18px;
         text-align: center;
-        font-size: 2.3rem;
-        font-weight: 800;
-        color: #d35400;
-        margin-bottom: 0.1rem;
-    }
-    .sub-title {
-        text-align: center;
-        color: #6c757d;
         margin-bottom: 1.5rem;
+        box-shadow: 0 4px 14px rgba(211, 84, 0, 0.35);
     }
-    .price-box {
-        background-color: #fff3e0;
-        color: #3e2723 !important;
-        padding: 10px;
-        border-radius: 10px;
+    .header-banner h1 {
+        color: white !important;
+        font-size: 2.3rem;
+        margin: 0;
+    }
+    .header-banner p {
+        color: #ffe8d1 !important;
+        margin: 0.3rem 0 0 0;
+        font-size: 1.05rem;
+    }
+    .section-heading {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 1rem 0 0.7rem 0;
+        color: #d35400 !important;
+    }
+    .menu-card {
+        background: #fff3e0;
+        border-left: 5px solid #d35400;
+        border-radius: 12px;
+        padding: 14px 16px;
         margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .menu-card .item-name {
+        color: #3e2723 !important;
+        font-weight: 600;
+        font-size: 1.05rem;
+    }
+    .menu-card .item-price {
+        color: #d35400 !important;
+        font-weight: 800;
         font-size: 1.1rem;
     }
-    .price-box b {
-        color: #3e2723 !important;
+    .total-card {
+        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        border-radius: 14px;
+        padding: 1.2rem;
+        text-align: center;
+        margin: 1rem 0;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.35);
+    }
+    .total-card h2 {
+        color: white !important;
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    div.stButton > button {
+        background: linear-gradient(135deg, #ff9a3c 0%, #d35400 100%);
+        color: white;
+        font-weight: 700;
+        border: none;
+        border-radius: 10px;
+        padding: 0.6rem 1.2rem;
+        width: 100%;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -93,48 +136,59 @@ if show_owner_panel:
 
 # --- CUSTOMER VIEW ---
 else:
-    st.markdown('<div class="main-title">🍛 Jai Balaji</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Veg Biryani Stall</div>', unsafe_allow_html=True)
+    st.markdown("""
+        <div class="header-banner">
+            <h1>🍛 Jai Balaji</h1>
+            <p>Veg Biryani Stall</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     menu = {
-        "Full Plate": 50,
-        "Half Plate": 30,
-        "Small Plate": 20
+        "Full Plate": {"price": 50, "icon": "🍚"},
+        "Half Plate": {"price": 30, "icon": "🥘"},
+        "Small Plate": {"price": 20, "icon": "🍛"},
     }
 
-    st.subheader("📋 Menu")
-    for item, price in menu.items():
-        st.markdown(f'<div class="price-box">🍽️ <b>{item}</b> — ₹{price}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">📋 Menu</div>', unsafe_allow_html=True)
+    for item, info in menu.items():
+        st.markdown(f"""
+            <div class="menu-card">
+                <span class="item-name">{info['icon']} {item}</span>
+                <span class="item-price">₹{info['price']}</span>
+            </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.subheader("🛒 Order Karein")
+    st.markdown('<div class="section-heading">🛒 Order Karein</div>', unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        full_qty = st.number_input("Full Plate", min_value=0, value=0, step=1)
+        full_qty = st.number_input("🍚 Full Plate", min_value=0, value=0, step=1)
     with col2:
-        half_qty = st.number_input("Half Plate", min_value=0, value=0, step=1)
+        half_qty = st.number_input("🥘 Half Plate", min_value=0, value=0, step=1)
     with col3:
-        small_qty = st.number_input("Small Plate", min_value=0, value=0, step=1)
+        small_qty = st.number_input("🍛 Small Plate", min_value=0, value=0, step=1)
 
-    total = (full_qty * menu["Full Plate"]) + (half_qty * menu["Half Plate"]) + (small_qty * menu["Small Plate"])
-
-    st.markdown("---")
+    total = (full_qty * menu["Full Plate"]["price"]) + (half_qty * menu["Half Plate"]["price"]) + (small_qty * menu["Small Plate"]["price"])
 
     if total > 0:
-        st.success(f"💰 Total Bill: ₹{total}")
-        with st.expander("🧾 Order Details"):
+        st.markdown(f"""
+            <div class="total-card">
+                <h2>💰 Total Bill: ₹{total}</h2>
+            </div>
+        """, unsafe_allow_html=True)
+
+        with st.expander("🧾 Order Details Dekhein"):
             if full_qty > 0:
-                st.write(f"Full Plate x {full_qty} = ₹{full_qty * menu['Full Plate']}")
+                st.write(f"🍚 Full Plate x {full_qty} = ₹{full_qty * menu['Full Plate']['price']}")
             if half_qty > 0:
-                st.write(f"Half Plate x {half_qty} = ₹{half_qty * menu['Half Plate']}")
+                st.write(f"🥘 Half Plate x {half_qty} = ₹{half_qty * menu['Half Plate']['price']}")
             if small_qty > 0:
-                st.write(f"Small Plate x {small_qty} = ₹{small_qty * menu['Small Plate']}")
+                st.write(f"🍛 Small Plate x {small_qty} = ₹{small_qty * menu['Small Plate']['price']}")
 
         if st.button("✅ Order Confirm Karein"):
             save_order(full_qty, half_qty, small_qty, total)
             st.balloons()
-            st.success("Order safaltapoorvak place ho gaya hai!")
+            st.success("🎉 Order safaltapoorvak place ho gaya hai!")
     else:
         st.info("Order karne ke liye quantity select karein.")
 
