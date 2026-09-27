@@ -95,11 +95,12 @@ st.markdown("""
 def load_orders():
     if os.path.exists(ORDERS_FILE):
         return pd.read_csv(ORDERS_FILE)
-    return pd.DataFrame(columns=["Timestamp", "Full Plate", "Half Plate", "Small Plate", "Total"])
+    return pd.DataFrame(columns=["Timestamp", "Name", "Mobile", "Address", "Full Plate", "Half Plate", "Small Plate", "Total"])
 
-def save_order(quantities, total):
+def save_order(customer, quantities, total):
     df = load_orders()
     new_row = {"Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    new_row.update(customer)
     new_row.update(quantities)
     new_row["Total"] = total
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -254,6 +255,10 @@ else:
             if key not in st.session_state:
                 st.session_state[key] = 0
 
+        for field_key in ["cust_name", "cust_mobile", "cust_address"]:
+            if field_key not in st.session_state:
+                st.session_state[field_key] = ""
+
         if "order_placed" not in st.session_state:
             st.session_state.order_placed = False
 
@@ -261,6 +266,9 @@ else:
         if st.session_state.get("do_reset", False):
             for item in menu:
                 st.session_state[f"qty_{item}"] = 0
+            st.session_state.cust_name = ""
+            st.session_state.cust_mobile = ""
+            st.session_state.cust_address = ""
             st.session_state.do_reset = False
 
         if st.session_state.order_placed:
@@ -268,6 +276,12 @@ else:
             st.success("🎉 Order safaltapoorvak place ho gaya hai!")
             st.session_state.order_placed = False
 
+        st.markdown("**👤 Aapki Details**")
+        cust_name = st.text_input("Naam", key="cust_name")
+        cust_mobile = st.text_input("Mobile No.", key="cust_mobile")
+        cust_address = st.text_area("Address", key="cust_address", height=80)
+
+        st.markdown("**🍽️ Quantity Chunein**")
         quantities = {}
         cols = st.columns(len(menu))
         for col, (item, info) in zip(cols, menu.items()):
@@ -291,10 +305,18 @@ else:
                         st.write(f"{menu[item]['icon']} {item} x {qty} = ₹{qty * menu[item]['price']}")
 
             if st.button("✅ Order Confirm Karein"):
-                save_order(quantities, total)
-                st.session_state.do_reset = True
-                st.session_state.order_placed = True
-                st.rerun()
+                if cust_name.strip() == "" or cust_mobile.strip() == "" or cust_address.strip() == "":
+                    st.error("Order confirm karne se pehle Naam, Mobile No. aur Address zaroor bharein.")
+                else:
+                    customer = {
+                        "Name": cust_name.strip(),
+                        "Mobile": cust_mobile.strip(),
+                        "Address": cust_address.strip()
+                    }
+                    save_order(customer, quantities, total)
+                    st.session_state.do_reset = True
+                    st.session_state.order_placed = True
+                    st.rerun()
         else:
             st.info("Order karne ke liye quantity select karein.")
 
