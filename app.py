@@ -14,6 +14,8 @@ ORDERS_FILE = "orders.csv"
 MENU_FILE = "menu.json"
 PIN_FILE = "pin.txt"
 QR_FILE = "qr.png"
+LOGO_FILE = "logo.png"
+SETTINGS_FILE = "settings.json"
 
 DEFAULT_MENU = {
     "Full Plate": {"price": 50, "icon": "🍚"},
@@ -21,26 +23,41 @@ DEFAULT_MENU = {
     "Small Plate": {"price": 20, "icon": "🍛"},
 }
 DEFAULT_PIN = "1234"
+DEFAULT_SETTINGS = {"stall_name": "Jai Balaji", "tagline": "Veg Biryani Stall"}
 
 # --- STYLING ---
 st.markdown("""
     <style>
     .header-banner {
         background: linear-gradient(135deg, #ff9a3c 0%, #d35400 100%);
-        padding: 2rem 1rem;
+        padding: 1.5rem 1.2rem;
         border-radius: 18px;
-        text-align: center;
         margin-bottom: 1.5rem;
         box-shadow: 0 4px 14px rgba(211, 84, 0, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+    }
+    .header-banner img {
+        height: 60px;
+        width: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: white;
+        padding: 4px;
+    }
+    .header-banner .text-block {
+        text-align: left;
     }
     .header-banner h1 {
         color: white !important;
-        font-size: 2.3rem;
+        font-size: 2.1rem;
         margin: 0;
     }
     .header-banner p {
         color: #ffe8d1 !important;
-        margin: 0.3rem 0 0 0;
+        margin: 0.2rem 0 0 0;
         font-size: 1.05rem;
     }
     .section-heading {
@@ -130,6 +147,17 @@ def load_pin():
 def save_pin(new_pin):
     with open(PIN_FILE, "w", encoding="utf-8") as f:
         f.write(new_pin)
+
+# --- HELPERS: Stall Settings (name, tagline) ---
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return DEFAULT_SETTINGS.copy()
+
+def save_settings(settings):
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(settings, f, ensure_ascii=False, indent=2)
 
 CURRENT_PIN = load_pin()
 
@@ -234,6 +262,39 @@ if show_owner_panel:
                     st.success("PIN safaltapoorvak update ho gaya. Agli baar naya PIN use karein.")
 
         st.markdown("---")
+        st.subheader("🏪 Stall Branding")
+        settings = load_settings()
+        with st.form("branding_form"):
+            new_stall_name = st.text_input("Stall ka Naam", value=settings["stall_name"])
+            new_tagline = st.text_input("Tagline", value=settings["tagline"])
+            branding_submitted = st.form_submit_button("Naam/Tagline Save Karein")
+            if branding_submitted:
+                settings["stall_name"] = new_stall_name.strip() or DEFAULT_SETTINGS["stall_name"]
+                settings["tagline"] = new_tagline.strip() or DEFAULT_SETTINGS["tagline"]
+                save_settings(settings)
+                st.success("Branding update ho gayi.")
+                st.rerun()
+
+        st.markdown("**🖼️ Logo**")
+        if os.path.exists(LOGO_FILE):
+            st.image(LOGO_FILE, caption="Current Logo", width=100)
+        else:
+            st.info("Abhi koi logo upload nahi hua hai — default emoji dikh raha hai.")
+
+        uploaded_logo = st.file_uploader("Naya Logo upload karein (PNG/JPG)", type=["png", "jpg", "jpeg"], key="logo_uploader")
+        if uploaded_logo is not None:
+            with open(LOGO_FILE, "wb") as f:
+                f.write(uploaded_logo.getbuffer())
+            st.success("Logo safaltapoorvak update ho gaya.")
+            st.rerun()
+
+        if os.path.exists(LOGO_FILE):
+            if st.button("🗑️ Logo Hatayein"):
+                os.remove(LOGO_FILE)
+                st.success("Logo hata diya gaya hai.")
+                st.rerun()
+
+        st.markdown("---")
         st.subheader("💳 Payment QR Code")
         if os.path.exists(QR_FILE):
             st.image(QR_FILE, caption="Current Payment QR", width=200)
@@ -256,11 +317,24 @@ if show_owner_panel:
 # --- CUSTOMER VIEW ---
 else:
     menu = load_menu()
+    settings = load_settings()
 
-    st.markdown("""
+    logo_html = ""
+    if os.path.exists(LOGO_FILE):
+        with open(LOGO_FILE, "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode()
+        logo_ext = LOGO_FILE.split(".")[-1]
+        logo_html = f'<img src="data:image/{logo_ext};base64,{logo_b64}" />'
+    else:
+        logo_html = '<span style="font-size:2.3rem;">🍛</span>'
+
+    st.markdown(f"""
         <div class="header-banner">
-            <h1>🍛 Jai Balaji</h1>
-            <p>Veg Biryani Stall</p>
+            {logo_html}
+            <div class="text-block">
+                <h1>{settings['stall_name']}</h1>
+                <p>{settings['tagline']}</p>
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -339,8 +413,8 @@ else:
             <html>
             <head><meta charset="UTF-8"></head>
             <body style="font-family: Arial, sans-serif; max-width:400px; margin:auto; padding:20px; color:#3e2723;">
-                <h2 style="text-align:center; color:#d35400;">🍛 Jai Balaji</h2>
-                <p style="text-align:center; margin-top:-10px;">Veg Biryani Stall</p>
+                <h2 style="text-align:center; color:#d35400;">{settings['stall_name']}</h2>
+                <p style="text-align:center; margin-top:-10px;">{settings['tagline']}</p>
                 <hr>
                 <p><b>Date/Time:</b> {last['timestamp']}</p>
                 <p><b>Name:</b> {last['customer']['Name']}</p>
@@ -446,9 +520,4 @@ else:
                     st.session_state.do_reset = True
                     st.session_state.order_placed = True
                     st.session_state.bill_downloaded = False
-                    st.rerun()
-        else:
-            st.info("Order karne ke liye quantity select karein.")
-
-    st.markdown("---")
-    st.caption("Made with ❤️ | Jai Balaji Veg Biryani Stall")
+                    st.
