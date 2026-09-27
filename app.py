@@ -147,6 +147,9 @@ if show_owner_panel:
 
     # --- TAB 1: ORDERS ---
     with tab_orders:
+        if st.button("🔄 Refresh Karein"):
+            st.rerun()
+
         orders_df = load_orders()
         if orders_df.empty:
             st.info("Abhi tak koi order nahi aaya hai.")
