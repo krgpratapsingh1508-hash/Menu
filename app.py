@@ -1,7 +1,9 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import os
 import json
+import base64
 from datetime import datetime
 
 # Page setup
@@ -276,6 +278,56 @@ else:
             st.success("🎉 Order safaltapoorvak place ho gaya hai!")
             st.session_state.order_placed = False
 
+        last = st.session_state.get("last_order")
+        if last:
+            bill_lines = [
+                "========================================",
+                "           JAI BALAJI",
+                "        Veg Biryani Stall",
+                "========================================",
+                f"Date/Time : {last['timestamp']}",
+                f"Name      : {last['customer']['Name']}",
+                f"Mobile    : {last['customer']['Mobile']}",
+                f"Address   : {last['customer']['Address']}",
+                "----------------------------------------",
+                "Item                 Qty      Amount",
+                "----------------------------------------",
+            ]
+            for item, qty in last["quantities"].items():
+                if qty > 0:
+                    price = last["menu"][item]["price"]
+                    amount = qty * price
+                    bill_lines.append(f"{item:<18} x{qty:<3}   ₹{amount}")
+            bill_lines += [
+                "----------------------------------------",
+                f"TOTAL BILL: ₹{last['total']}",
+                "========================================",
+                "      Thank you! Aayiye phir!",
+                "========================================",
+            ]
+            bill_text = "\n".join(bill_lines)
+            file_name = f"bill_{last['timestamp'].replace(' ', '_').replace(':', '-')}.txt"
+
+            # Sirf tabhi auto-download trigger karein jab ye NAYA bill ho (dobara har rerun par na ho)
+            if not st.session_state.get("bill_downloaded", False):
+                b64 = base64.b64encode(bill_text.encode()).decode()
+                components.html(f"""
+                    <html><body>
+                    <a id="autoDownload" href="data:text/plain;base64,{b64}" download="{file_name}"></a>
+                    <script>
+                        document.getElementById('autoDownload').click();
+                    </script>
+                    </body></html>
+                """, height=0)
+                st.session_state.bill_downloaded = True
+
+            st.download_button(
+                "⬇️ Bill Dobara Download Karein",
+                data=bill_text,
+                file_name=file_name,
+                mime="text/plain"
+            )
+
         st.markdown("**👤 Aapki Details**")
         cust_name = st.text_input("Naam", key="cust_name")
         cust_mobile = st.text_input("Mobile No.", key="cust_mobile")
@@ -314,8 +366,16 @@ else:
                         "Address": cust_address.strip()
                     }
                     save_order(customer, quantities, total)
+                    st.session_state.last_order = {
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "customer": customer,
+                        "quantities": quantities.copy(),
+                        "menu": menu,
+                        "total": total
+                    }
                     st.session_state.do_reset = True
                     st.session_state.order_placed = True
+                    st.session_state.bill_downloaded = False
                     st.rerun()
         else:
             st.info("Order karne ke liye quantity select karein.")
