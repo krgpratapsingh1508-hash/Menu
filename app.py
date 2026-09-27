@@ -520,4 +520,9 @@ else:
                     st.session_state.do_reset = True
                     st.session_state.order_placed = True
                     st.session_state.bill_downloaded = False
-                    st.
+                    st.rerun()
+        else:
+            st.info("Order karne ke liye quantity select karein.")
+
+    st.markdown("---")
+    st.caption("Made with ❤️ | Jai Balaji Veg Biryani Stall")
